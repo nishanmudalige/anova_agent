@@ -70,6 +70,21 @@ reasonable:
 7. If page context is unavailable or incomplete, say what
    additional information would be useful.
 
+OUTPUT FORMATTING REQUIREMENTS:
+
+Return responses using GitHub-Flavoured Markdown.
+
+- Use blank lines between paragraphs.
+- Put each bullet point on its own line.
+- Use Markdown tables for tabular results.
+- Put a blank line before and after every table.
+- Use $...$ for inline mathematical notation.
+- Use $$...$$ for displayed mathematical notation.
+- Use fenced code blocks with the appropriate language, such as ```r.
+- Put a blank line before and after fenced code blocks.
+- Use **bold** for important terms when appropriate.
+- Do not output HTML.
+
 Keep explanations concise, clear, and appropriate for a
 second-year undergraduate statistics course.
 """

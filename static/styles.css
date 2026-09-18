@@ -128,3 +128,66 @@ button:disabled {
   opacity: 0.5;
   cursor: default;
 }
+
+
+.message.assistant p {
+  margin: 8px 0;
+}
+
+
+.message.assistant p:first-child {
+  margin-top: 0;
+}
+
+
+.message.assistant p:last-child {
+  margin-bottom: 0;
+}
+
+
+.message.assistant ul,
+.message.assistant ol {
+  margin: 8px 0;
+  padding-left: 24px;
+}
+
+
+.message.assistant table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 12px 0;
+}
+
+
+.message.assistant th,
+.message.assistant td {
+  border: 1px solid #ccc;
+  padding: 7px 10px;
+  text-align: left;
+}
+
+
+.message.assistant th {
+  font-weight: 600;
+}
+
+
+.message.assistant pre {
+  margin: 10px 0;
+  padding: 12px;
+  overflow-x: auto;
+  border-radius: 6px;
+  background: #ffffff;
+}
+
+
+.message.assistant code {
+  font-family: monospace;
+}
+
+
+.message.assistant .katex-display {
+  overflow-x: auto;
+  overflow-y: hidden;
+  margin: 12px 0;
+}

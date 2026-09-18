@@ -5,10 +5,54 @@ const sendButton = document.getElementById("sendButton");
 let history = [];
 let pageContext = null;
 
+function normalizeMathDelimiters(text) {
+  const parts = text.split(/(```[\s\S]*?```|`[^`\n]*`)/g);
+
+  return parts
+    .map((part, index) => {
+      if (index % 2 === 1) return part;
+
+      return part
+        .replaceAll("\\[", "$$")
+        .replaceAll("\\]", "$$")
+        .replaceAll("\\(", "$")
+        .replaceAll("\\)", "$");
+    })
+    .join("");
+}
+
+function renderAssistantMessage(div, text) {
+  const normalized = normalizeMathDelimiters(text);
+
+  const rendered = marked.parse(normalized, {
+    gfm: true,
+    breaks: true
+  });
+
+  div.innerHTML = DOMPurify.sanitize(rendered);
+
+  renderMathInElement(div, {
+    delimiters: [
+      { left: "$$", right: "$$", display: true },
+      { left: "\\[", right: "\\]", display: true },
+      { left: "$", right: "$", display: false },
+      { left: "\\(", right: "\\)", display: false }
+    ],
+    throwOnError: false,
+    ignoredTags: ["script", "noscript", "style", "textarea", "pre", "code"]
+  });
+}
+
 function addMessage(role, text) {
   const div = document.createElement("div");
   div.className = "message " + (role === "user" ? "user" : "assistant");
-  div.textContent = text;
+
+  if (role === "user") {
+    div.textContent = text;
+  } else {
+    renderAssistantMessage(div, text);
+  }
+
   messagesDiv.appendChild(div);
   messagesDiv.scrollTop = messagesDiv.scrollHeight;
 }
