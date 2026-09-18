@@ -5,42 +5,147 @@ const sendButton = document.getElementById("sendButton");
 let history = [];
 let pageContext = null;
 
-function normalizeMathDelimiters(text) {
-  const parts = text.split(/(```[\s\S]*?```|`[^`\n]*`)/g);
+// Math is rendered to HTML BEFORE Markdown runs, and put back into the
+// DOM AFTER sanitising. Rendering it afterwards does not work: with
+// `breaks: true`, marked turns the newlines around a display block into
+// <br> tags, so "$$", the formula and the closing "$$" end up in three
+// separate text nodes and KaTeX's auto-render (which only scans within a
+// single text node) never sees a complete delimiter pair.
 
-  return parts
-    .map((part, index) => {
-      if (index % 2 === 1) return part;
+const MATH_PLACEHOLDER_PREFIX = "@@KMATH";
+const MATH_PLACEHOLDER_SUFFIX = "@@";
 
-      return part
-        .replaceAll("\\[", "$$")
-        .replaceAll("\\]", "$$")
-        .replaceAll("\\(", "$")
-        .replaceAll("\\)", "$");
-    })
-    .join("");
+// $$...$$ and \[...\] are display; $...$ and \(...\) are inline.
+const MATH_PATTERN = new RegExp(
+  [
+    "\\$\\$([\\s\\S]+?)\\$\\$",
+    "\\\\\\[([\\s\\S]+?)\\\\\\]",
+    "\\$((?:[^$\\\\\\n]|\\\\.)+?)\\$",
+    "\\\\\\(([\\s\\S]+?)\\\\\\)"
+  ].join("|"),
+  "g"
+);
+
+function renderTex(tex, displayMode) {
+  try {
+    return katex.renderToString(tex.trim(), {
+      displayMode: displayMode,
+      throwOnError: false,
+      output: "html"
+    });
+  } catch (error) {
+    console.error("KaTeX failed on:", tex, error);
+    return null;
+  }
+}
+
+// Replaces every math span with an opaque placeholder and returns the
+// already-rendered HTML for each one. Code spans and fenced blocks are
+// left untouched.
+function extractMath(text) {
+  const segments = text.split(/(```[\s\S]*?```|`[^`\n]*`)/g);
+  const rendered = [];
+
+  const processed = segments.map(function (segment, index) {
+    if (index % 2 === 1) return segment;
+
+    return segment.replace(
+      MATH_PATTERN,
+      function (match, display$, displayBracket, inline$, inlineParen) {
+        const isDisplay =
+          display$ !== undefined || displayBracket !== undefined;
+
+        const tex =
+          display$ !== undefined ? display$
+          : displayBracket !== undefined ? displayBracket
+          : inline$ !== undefined ? inline$
+          : inlineParen;
+
+        const html = renderTex(tex, isDisplay);
+
+        // On failure, leave the original text in place.
+        if (html === null) return match;
+
+        rendered.push({ html: html, display: isDisplay });
+
+        return (
+          MATH_PLACEHOLDER_PREFIX +
+          (rendered.length - 1) +
+          MATH_PLACEHOLDER_SUFFIX
+        );
+      }
+    );
+  });
+
+  return { text: processed.join(""), math: rendered };
+}
+
+// Swaps the placeholders in the sanitised DOM back for the KaTeX output.
+// The KaTeX HTML is generated locally, so it never passes through the
+// sanitiser (which would strip the markup KaTeX needs).
+function restoreMath(root, math) {
+  if (math.length === 0) return;
+
+  const pattern = new RegExp(
+    MATH_PLACEHOLDER_PREFIX + "(\\d+)" + MATH_PLACEHOLDER_SUFFIX,
+    "g"
+  );
+
+  const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+  const targets = [];
+
+  while (walker.nextNode()) {
+    pattern.lastIndex = 0;
+    if (pattern.test(walker.currentNode.nodeValue)) {
+      targets.push(walker.currentNode);
+    }
+  }
+
+  targets.forEach(function (node) {
+    const holder = document.createElement("span");
+
+    holder.innerHTML = node.nodeValue.replace(
+      pattern,
+      function (match, index) {
+        const entry = math[Number(index)];
+        return entry ? entry.html : match;
+      }
+    );
+
+    // A display formula that is the only thing in its paragraph replaces
+    // the paragraph, so the block-level KaTeX output is not nested in a <p>.
+    const parent = node.parentNode;
+
+    if (
+      parent &&
+      parent.tagName === "P" &&
+      parent.childNodes.length === 1 &&
+      holder.childElementCount === 1 &&
+      holder.textContent.trim() === holder.firstElementChild.textContent.trim()
+    ) {
+      parent.parentNode.replaceChild(holder.firstElementChild, parent);
+      return;
+    }
+
+    while (holder.firstChild) {
+      parent.insertBefore(holder.firstChild, node);
+    }
+
+    parent.removeChild(node);
+  });
 }
 
 function renderAssistantMessage(div, text) {
-  const normalized = normalizeMathDelimiters(text);
+  const extracted = extractMath(text);
 
-  const rendered = marked.parse(normalized, {
+  const rendered = marked.parse(extracted.text, {
     gfm: true,
     breaks: true
   });
 
   div.innerHTML = DOMPurify.sanitize(rendered);
 
-  renderMathInElement(div, {
-    delimiters: [
-      { left: "$$", right: "$$", display: true },
-      { left: "\\[", right: "\\]", display: true },
-      { left: "$", right: "$", display: false },
-      { left: "\\(", right: "\\)", display: false }
-    ],
-    throwOnError: false,
-    ignoredTags: ["script", "noscript", "style", "textarea", "pre", "code"]
-  });
+  restoreMath(div, extracted.math);
 }
 
 function addMessage(role, text) {
