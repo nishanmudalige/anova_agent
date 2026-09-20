@@ -1,0 +1,14 @@
+WHOLE-DECK UPDATE
+
+This version supports the same three contexts through one Render agent:
+
+1. Pre-example theory: generic ANOVA only.
+2. Example/activity: example-specific answers using supplied data/context.
+3. Whole-deck/final iframe: preserves BOTH generic ANOVA theory and the illustrative example.
+
+For whole-deck summaries and overviews, the agent is explicitly instructed to:
+- explain the generic ANOVA concepts first;
+- then connect those concepts to the illustrative example;
+- not replace the generic theory with an example-only summary.
+
+Drop these files into the existing anova_agent Render repository and redeploy.
