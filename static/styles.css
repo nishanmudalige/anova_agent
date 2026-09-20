@@ -191,3 +191,39 @@ button:disabled {
   overflow-y: hidden;
   margin: 12px 0;
 }
+
+
+/* Figures: images the model links to, and the F-distribution plots this
+   page draws from an ```fplot block. */
+.message.assistant img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  margin: 10px 0;
+  border-radius: 8px;
+}
+
+
+.message.assistant .agent-figure {
+  margin: 12px 0;
+  padding: 8px 10px 6px;
+  background: #ffffff;
+  border: 1px solid #e2e2e6;
+  border-radius: 10px;
+  max-width: 460px;
+}
+
+
+.message.assistant .agent-figure-svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+
+.message.assistant .agent-figure figcaption {
+  margin-top: 4px;
+  font-size: 13px;
+  color: #5c5c5c;
+  text-align: center;
+}
